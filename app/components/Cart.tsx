@@ -191,7 +191,7 @@ export default function Cart({
 
   // Derive identity from props or active AuthContext
   const activeEmail = userEmail || authUser?.email;
-  const activeUserId = userId || authUser?.id || authUser?._id;
+  const activeUserId = userId || authUser?.id || (authUser as any)?._id;
   const activeUserName = userName || authUser?.name || "Bakery Customer";
 
   useEffect(() => { setMounted(true); }, []);
