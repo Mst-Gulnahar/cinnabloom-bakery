@@ -63,7 +63,7 @@ export default function AddItemPage() {
     } catch (err) {
       console.error("AI Generation error:", err);
       alert("Network error while calling AI service.");
-    } fontally {
+    } finally {
       setIsGeneratingAI(false);
     }
   };
