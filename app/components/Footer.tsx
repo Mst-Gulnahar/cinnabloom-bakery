@@ -4,13 +4,20 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext"; // Adjust path if needed (e.g., '@/context/AuthContext')
+import { useAuth } from "../../context/AuthContext";
 
 export default function Footer() {
   const { user } = useAuth();
 
+  // Safe checks for user avatar image
+  const userAvatar = (user as any)?.image || (user as any)?.avatarUrl;
+
   // Helper for initial fallback if image fails or isn't present
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : user?.email ? user.email.charAt(0).toUpperCase() : "B";
+  const userInitial = user?.name 
+    ? user.name.charAt(0).toUpperCase() 
+    : user?.email 
+      ? user.email.charAt(0).toUpperCase() 
+      : "B";
 
   return (
     <footer className="relative bg-[#4A2C2A] text-[#FDF6E3] pt-24 pb-12 overflow-hidden mt-12">
@@ -77,26 +84,24 @@ export default function Footer() {
               
               {/* --- DYNAMIC AUTH STATUS / AVATAR --- */}
               {user ? (
-                <Link href="/profile">
-                  <div className="flex items-center gap-2 bg-[#FDF6E3]/10 hover:bg-[#C84B31] border border-[#FDF6E3]/30 px-3 py-1.5 rounded-full transition-all group">
-                    {user.avatarUrl ? (
-                      <Image
-                        src={user.avatarUrl}
-                        alt={user.name || "User Profile"}
-                        width={28}
-                        height={28}
-                        className="rounded-full object-cover border border-[#FDF6E3]"
-                      />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-[#C84B31] text-[#FDF6E3] flex items-center justify-center font-black text-xs border border-[#FDF6E3]">
-                        {userInitial}
-                      </div>
-                    )}
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#FDF6E3] pr-1">
-                      {user.name ? user.name.split(" ")[0] : "Baker"}
-                    </span>
-                  </div>
-                </Link>
+                <div className="flex items-center gap-2 bg-[#FDF6E3]/10 border border-[#FDF6E3]/30 px-3 py-1.5 rounded-full">
+                  {userAvatar ? (
+                    <Image
+                      src={userAvatar}
+                      alt={user.name || "User Profile"}
+                      width={28}
+                      height={28}
+                      className="rounded-full object-cover border border-[#FDF6E3]"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-[#C84B31] text-[#FDF6E3] flex items-center justify-center font-black text-xs border border-[#FDF6E3]">
+                      {userInitial}
+                    </div>
+                  )}
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#FDF6E3] pr-1">
+                    {user.name ? user.name.split(" ")[0] : "Baker"}
+                  </span>
+                </div>
               ) : (
                 <Link href="/login">
                   <button className="bg-[#C84B31] text-white hover:bg-[#FDF6E3] hover:text-[#4A2C2A] px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-black border border-[#FDF6E3]/20 transition-all shadow-sm">
