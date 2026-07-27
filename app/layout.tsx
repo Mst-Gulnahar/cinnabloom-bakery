@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Header from "./components/Navbar"; // Adjust the import path if your Header is saved elsewhere
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
 import "./globals.css";
+import { AuthProvider } from "../context/AuthContext";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,19 +26,25 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#FDF6E3] text-[#4A2C2A]">
-        {/* Floating Capsule Navbar */}
-        <Header />
+        <GoogleOAuthProvider clientId={googleClientId}>
+          <AuthProvider>
+            <Navbar />
 
-        {/* Main Content Area */}
-        <main className="flex-1">
-          {children}
-        </main>
+            <main className="flex-1">
+              {children}
+            </main>
+
+            <Footer />
+          </AuthProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

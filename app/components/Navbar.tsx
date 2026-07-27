@@ -1,101 +1,206 @@
 "use client";
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, ShoppingBag, User, Menu, X } from 'lucide-react';
+import { ShoppingBag, Menu, X, LayoutDashboard, PlusCircle, User as UserIcon, LogOut } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext'; 
 
 export default function Header() {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  // Aliasing logoutUser -> logout fixes the TypeError instantly
+  const { user, logoutUser: logout } = useAuth(); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [orderCount, setOrderCount] = useState<number>(0);
+  const [userDropdownOpen, setUserDropdownOpen] = useState<boolean>(false);
+
+  const isLoggedIn = !!user;
+  const isAdmin = user?.role === 'admin';
+  
+  // CHANGED: Dashboard nav now explicitly takes user to /items/manage
+  const dashboardPath = '/items/manage';
+
+  // Sync active/total orders count for badge
+  useEffect(() => {
+    const syncOrderCount = () => {
+      const saved = localStorage.getItem("chirp_history");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setOrderCount(parsed.length);
+          }
+        } catch (e) {
+          setOrderCount(0);
+        }
+      }
+    };
+
+    syncOrderCount();
+    window.addEventListener("chirp_order_placed", syncOrderCount);
+    return () => window.removeEventListener("chirp_order_placed", syncOrderCount);
+  }, []);
 
   return (
-    <header className="w-full fixed top-0 left-0 z-[9999] shadow-sm">
+    <header className="w-full fixed top-0 left-0 z-[9999]">
 
-      {/* 2. MAIN NAVBAR */}
-      <nav className="bg-[#FFFDF5] px-6 md:px-12 py-4 flex items-center justify-between text-[#4A2C2A]">
+      {/* MAIN NAVBAR - Rounded Bubble Container */}
+      <nav className="bg-[#FFFDF5]/95 backdrop-blur-md px-6 md:px-10 py-3.5 flex items-center justify-between text-[#4A2C2A] border-b border-[#E8E1D5] shadow-xs">
         
         {/* LOGO */}
-        <Link href="/" className="text-3xl md:text-4xl font-bold italic tracking-tighter hover:opacity-80 transition-opacity">
+        <Link 
+          href="/" 
+          className="text-3xl md:text-4xl font-black italic tracking-tight hover:opacity-80 transition-all text-[#3E3835]"
+        >
           Cinnabloom
         </Link>
 
         {/* DESKTOP NAV LINKS */}
-        <div className="hidden md:flex items-center gap-8 text-[11px] lowercase tracking-wide font-medium">
-          <Link href="/" className="hover:opacity-70 transition-opacity">home</Link>
-          <Link href="/explore" className="hover:opacity-70 transition-opacity">explore menu</Link>
-          <Link href="/about" className="hover:opacity-70 transition-opacity">about us</Link>
-          <Link href="/contact" className="hover:opacity-70 transition-opacity">contact</Link>
+        <div className="hidden md:flex items-center gap-2 text-[13px] lowercase font-bold tracking-wide">
+          <Link href="/" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+            home
+          </Link>
+          <Link href="/explore" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+            explore menu
+          </Link>
+          <Link href="/about" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+            about us
+          </Link>
+          <Link href="/contact" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+            contact
+          </Link>
 
-          {/* PROTECTED ROUTES */}
+          {/* LOGGED IN NAVIGATION - SHOW DASHBOARD */}
           {isLoggedIn && (
+            <Link 
+              href={dashboardPath} 
+              className="px-3.5 py-1.5 rounded-full bg-[#EBF3F5] text-[#3D6B7B] hover:bg-[#DCEBF0] transition-colors flex items-center gap-1 font-bold"
+            >
+              <LayoutDashboard size={14} /> dashboard
+            </Link>
+          )}
+
+          {/* ADMIN-ONLY ACTION */}
+          {isLoggedIn && isAdmin && (
+            <Link 
+              href="/items/add" 
+              className="px-3.5 py-1.5 rounded-full bg-[#FDF0F0] text-[#D96B6B] hover:bg-[#FADEDE] transition-colors flex items-center gap-1 font-bold"
+            >
+              <PlusCircle size={14} /> bake item
+            </Link>
+          )}
+
+          {/* PUBLIC AUTH LINKS (Hidden when logged in) */}
+          {!isLoggedIn && (
             <>
-              <Link href="/items/add" className="text-red-700 font-bold hover:underline">
-                + bake item
+              <Link href="/signup" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+                signup
               </Link>
-              <Link href="/items/manage" className="hover:opacity-70 transition-opacity">
-                manage
+              <Link href="/login" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
+                login
               </Link>
             </>
           )}
         </div>
 
-        {/* RIGHT SIDE ICONS & AUTH */}
-        <div className="flex items-center gap-5">
-          <div className="hidden sm:flex items-center gap-3 pr-2 border-r border-[#4A2C2A]/15">
-            {/* Native Instagram SVG replacing the broken import */}
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="18" 
-              height="18" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="cursor-pointer hover:opacity-70 transition-opacity"
-            >
-              <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
-              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
-              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
-            </svg>
-            <Search size={18} className="cursor-pointer hover:opacity-70 transition-opacity" />
-          </div>
+        {/* RIGHT SIDE - ORDER HISTORY & AVATAR */}
+        <div className="flex items-center gap-4">
 
-          <div className="relative cursor-pointer group">
-            <ShoppingBag size={19} className="group-hover:scale-105 transition-transform" />
-            <span className="absolute -top-1 -right-1.5 bg-[#C84B31] text-[#FFFDF5] text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-              0
-            </span>
-          </div>
+          {/* ORDER HISTORY ICON */}
+          <Link 
+            href="/order-history" 
+            title="Order History & Live Tracker"
+            className="relative p-2 rounded-full hover:bg-[#F3EDE2] transition-all group"
+          >
+            <ShoppingBag size={21} className="group-hover:scale-105 transition-transform text-[#4A2C2A]" />
+            {orderCount > 0 && (
+              <span className="absolute top-0 right-0 bg-[#D96B6B] text-[#FFFDF5] text-[10px] font-black w-4 h-4 rounded-full flex items-center justify-center shadow-xs">
+                {orderCount}
+              </span>
+            )}
+          </Link>
 
+          {/* USER AVATAR OR LOGIN BUTTON */}
           {isLoggedIn ? (
-            <button 
-              onClick={() => setIsLoggedIn(false)}
-              className="text-[11px] lowercase underline font-medium hover:opacity-70"
-            >
-              logout
-            </button>
+            <div className="relative">
+              <button
+                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                className="w-9 h-9 rounded-full bg-[#E5E0D8] border-2 border-[#D96B6B] flex items-center justify-center overflow-hidden hover:scale-105 transition-all shadow-xs cursor-pointer"
+                title={user?.name || "Account"}
+              >
+                {(user as any)?.avatar ? (
+                  <img src={(user as any).avatar} alt={user.name || "User"} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs font-black text-[#3E3835]">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={16} />}
+                  </span>
+                )}
+              </button>
+
+              {/* USER PROFILE DROPDOWN */}
+              {userDropdownOpen && (
+                <div 
+                  className="absolute right-0 mt-2 w-48 bg-[#FFFDF9] border border-[#E8E1D5] rounded-2xl shadow-lg p-2 flex flex-col gap-1 text-xs font-semibold z-50"
+                  onMouseLeave={() => setUserDropdownOpen(false)}
+                >
+                  <div className="px-3 py-2 border-b border-[#E8E1D5] mb-1">
+                    <p className="font-bold text-[#3E3835] truncate">{user?.name || "Welcome!"}</p>
+                    <p className="text-[10px] text-[#8C857B] font-normal capitalize">{user?.role || "Customer"}</p>
+                  </div>
+
+                  {/* CHANGED: Fixed path here from hardcoded items/add to dashboardPath (/items/manage) */}
+                  <Link 
+                    href={dashboardPath}
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="px-3 py-2 rounded-xl hover:bg-[#F3EDE2] flex items-center gap-2 text-[#3E3835]"
+                  >
+                    <LayoutDashboard size={14} /> Dashboard
+                  </Link>
+
+                  <Link 
+                    href="/order-history"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="px-3 py-2 rounded-xl hover:bg-[#F3EDE2] flex items-center gap-2 text-[#3E3835]"
+                  >
+                    <ShoppingBag size={14} /> Orders ({orderCount})
+                  </Link>
+
+                  <button
+                    onClick={() => {
+                      setUserDropdownOpen(false);
+                      logout();
+                    }}
+                    className="w-full text-left px-3 py-2 rounded-xl hover:bg-[#FDF0F0] text-[#D96B6B] flex items-center gap-2 font-bold cursor-pointer"
+                  >
+                    <LogOut size={14} /> Logout
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
-            <Link href="/login" className="hover:opacity-70 transition-opacity">
-              <User size={19} />
+            <Link 
+              href="/login" 
+              className="p-2 rounded-full hover:bg-[#F3EDE2] transition-all text-[#4A2C2A]"
+              title="Log In"
+            >
+              <UserIcon size={21} />
             </Link>
           )}
 
-          {/* MOBILE TOGGLE */}
+          {/* MOBILE TOGGLE MENU */}
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="md:hidden"
+            className="md:hidden p-2 rounded-full hover:bg-[#F3EDE2] transition-colors"
+            aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </nav>
 
-      {/* 3. DASHED RIBBON BORDER */}
+      {/* DASHED RIBBON BORDER */}
       <div 
         className="h-2 w-full bg-[#FFFDF5]"
         style={{
-          backgroundImage: `radial-gradient(#C84B31 35%, transparent 35%)`,
+          backgroundImage: `radial-gradient(#D96B6B 35%, transparent 35%)`,
           backgroundPosition: '0 0',
           backgroundSize: '16px 16px',
           backgroundRepeat: 'repeat-x'
@@ -104,19 +209,39 @@ export default function Header() {
 
       {/* MOBILE DROPDOWN */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#FFFDF5] border-b border-[#4A2C2A]/20 px-6 py-6 flex flex-col gap-4 text-center font-medium lowercase text-sm">
-          <Link href="/" onClick={() => setMobileMenuOpen(false)}>home</Link>
-          <Link href="/explore" onClick={() => setMobileMenuOpen(false)}>explore menu</Link>
-          <Link href="/about" onClick={() => setMobileMenuOpen(false)}>about us</Link>
-          <Link href="/contact" onClick={() => setMobileMenuOpen(false)}>contact</Link>
+        <div className="md:hidden bg-[#FFFDF5] border-b border-[#E8E1D5] px-6 py-6 flex flex-col gap-3 text-center font-bold lowercase text-sm shadow-md">
+          <Link href="/" onClick={() => setMobileMenuOpen(false)} className="py-1">home</Link>
+          <Link href="/explore" onClick={() => setMobileMenuOpen(false)} className="py-1">explore menu</Link>
+          <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="py-1">about us</Link>
+          <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="py-1">contact</Link>
+          
           {isLoggedIn && (
             <>
-              <Link href="/items/add" onClick={() => setMobileMenuOpen(false)} className="text-red-700">
-                + bake item
+              <div className="h-[1px] w-12 bg-[#E8E1D5] mx-auto my-1" />
+              <Link 
+                href={dashboardPath} 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="text-[#3D6B7B] py-1 flex items-center justify-center gap-1.5"
+              >
+                <LayoutDashboard size={15} /> dashboard
               </Link>
-              <Link href="/items/manage" onClick={() => setMobileMenuOpen(false)}>
-                manage
-              </Link>
+              {isAdmin && (
+                <Link 
+                  href="/items/add" 
+                  onClick={() => setMobileMenuOpen(false)} 
+                  className="text-[#D96B6B] py-1 flex items-center justify-center gap-1.5"
+                >
+                  <PlusCircle size={15} /> + bake item
+                </Link>
+              )}
+            </>
+          )}
+
+          {!isLoggedIn && (
+            <>
+              <div className="h-[1px] w-12 bg-[#E8E1D5] mx-auto my-1" />
+              <Link href="/signup" onClick={() => setMobileMenuOpen(false)} className="py-1">signup</Link>
+              <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="py-1 text-[#D96B6B]">login</Link>
             </>
           )}
         </div>
