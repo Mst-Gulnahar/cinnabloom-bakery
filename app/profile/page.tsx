@@ -180,7 +180,7 @@ export default function ProfilePage() {
         <p className="text-xs font-bold uppercase tracking-widest text-[#5A7A88] animate-pulse">
           Loading Profile...
         </p>
-      </div> overflow-hidden
+      </div>
     );
   }
 
