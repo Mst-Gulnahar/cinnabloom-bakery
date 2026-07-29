@@ -56,8 +56,9 @@ export default function ProfilePage() {
   const router = useRouter();
   const params = useParams();
 
-  const profileArtistId = params?.id || user?.id || user?._id;
-  const isOwner = Boolean(user && (user.id === profileArtistId || user._id === profileArtistId));
+  // Prioritize MongoDB _id first to prevent sending OAuth Google ID string to endpoints
+  const profileArtistId = params?.id || user?._id || user?.id;
+  const isOwner = Boolean(user && (user._id === profileArtistId || user.id === profileArtistId));
 
   const [formData, setFormData] = useState({
     name: "",
@@ -94,7 +95,8 @@ export default function ProfilePage() {
 
       if (user && isOwner) {
         try {
-          const currentId = user.id || user._id;
+          // Always send MongoDB _id first
+          const currentId = user._id || user.id;
           const token = localStorage.getItem("token");
 
           const res = await fetch(`${API_BASE_URL}/api/auth/user/${currentId}`, {
@@ -218,7 +220,7 @@ export default function ProfilePage() {
 
     try {
       const payload = {
-        userId: user.id || user._id,
+        userId: user._id || user.id,
         name: formData.name.trim(),
         photoUrl: formData.photoUrl.trim(),
         ...(password.trim() !== "" && { password })
