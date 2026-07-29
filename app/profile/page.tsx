@@ -274,32 +274,6 @@ export default function ProfilePage() {
     >
       <div className="absolute inset-0 bg-[#D0E3EA]/40 backdrop-blur-[2px] pointer-events-none" />
 
-      {/* --- TOAST SYSTEM --- */}
-      <AnimatePresence>
-        {toastMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -50, scale: 0.9, x: "-50%" }}
-            animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
-            exit={{ opacity: 0, y: -20, scale: 0.9, x: "-50%" }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed top-12 left-1/2 z-50 flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-[#FAF7F2]/95 backdrop-blur-md border border-[#E5E0D8] shadow-lg min-w-[260px] max-w-md pointer-events-auto"
-          >
-            <div className="shrink-0 flex items-center justify-center">
-              {toastMessage.type === "loading" ? (
-                <Loader2 size={16} className="text-[#D96B6B] animate-spin" />
-              ) : toastMessage.type === "success" ? (
-                <CheckCircle2 size={16} className="text-[#5A7A88]" />
-              ) : (
-                <AlertCircle size={16} className="text-[#D96B6B]" />
-              )}
-            </div>
-            <p className="text-xs font-semibold text-[#3E3835]">
-              {toastMessage.text}
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start">
         
         {/* LEFT CONTAINER (Live Preview Card) */}
