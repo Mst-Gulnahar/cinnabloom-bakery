@@ -43,9 +43,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax;";
       }
     } catch (e) {
       console.error("Error reading auth state:", e);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
     } finally {
       setLoading(false);
     }
@@ -61,18 +64,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.cookie = `token=${newToken}; path=/; max-age=86400; SameSite=Lax;`;
 
     router.push(redirectTo);
+    router.refresh();
   };
 
   const logoutUser = () => {
+    // 1. Reset state instantly
     setToken(null);
     setUser(null);
 
+    // 2. Clear storage
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    // 3. Clear cookie cleanly across root path
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax;";
 
+    // 4. Force reset scroll position in case modal locks were lingering
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "unset";
+    }
+
+    // 5. Navigate & purge Next.js router client cache
     router.push("/login");
+    router.refresh();
   };
 
   return (

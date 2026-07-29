@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // Added useRouter
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Plus, Eye, Loader2, Search, ArrowRight, ShoppingBag, Check, ChevronDown, Sparkles, Clock, Flame, Cookie, Users, PackageCheck, Gift, Tag, Quote, Heart } from 'lucide-react'; 
+import { Star, Plus, Eye, Loader2, Search, ArrowRight, ShoppingBag, Check, ChevronDown, Sparkles, Clock, Flame, Cookie, Users, PackageCheck, Gift, Tag, Quote } from 'lucide-react'; 
 import Link from 'next/link';
 import Image from 'next/image';
 import Cart, { CartItem } from './components/Cart'; 
@@ -59,7 +59,6 @@ const SHOOTING_STARS = [
   },
 ];
 
-// --- BAKERY FAQS ---
 const BAKERY_FAQS = [
   {
     question: "When is the best time to visit or order for hot, fresh rolls?",
@@ -83,7 +82,6 @@ const BAKERY_FAQS = [
   }
 ];
 
-// --- CUSTOMIZER OPTIONS ---
 const FROSTINGS = [
   { id: 'cream-cheese', name: 'Classic Cream Cheese', price: 0.00 },
   { id: 'salted-caramel', name: 'Salted Bourbon Caramel', price: 0.75 },
@@ -98,14 +96,12 @@ const TOPPINGS = [
   { id: 'berries', name: 'Freeze-Dried Strawberries', price: 0.75 },
 ];
 
-// --- MYSTERY PERKS ---
 const MYSTERY_OFFERS = [
   { code: "SWEET15", text: "15% OFF Your Entire Order!" },
   { code: "FREEGLAZE", text: "Free Extra Dip Icing Included!" },
   { code: "FREESHIP", text: "Free Local Bakery Delivery!" }
 ];
 
-// --- BAKERY REVIEWS ---
 const BAKERY_REVIEWS = [
   {
     name: "Samantha L.",
@@ -132,7 +128,7 @@ const BAKERY_REVIEWS = [
 
 export default function HomePage() {
   const { user } = useAuth();
-  const router = useRouter(); // Instantiated useRouter
+  const router = useRouter();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -141,20 +137,21 @@ export default function HomePage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Accordion state
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
-  // Customizer interactive state
   const [selectedFrosting, setSelectedFrosting] = useState(FROSTINGS[0]);
   const [selectedToppings, setSelectedToppings] = useState<string[]>(['pecans']);
 
-  // Mystery Offer Reveal State
   const [revealedOffer, setRevealedOffer] = useState<{ code: string; text: string } | null>(null);
 
-  // Cart state management
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [addedItemAnimation, setAddedItemAnimation] = useState<string | null>(null);
+
+  // --- FORCE RESET BODY OVERFLOW ON PAGE MOUNT ---
+  useEffect(() => {
+    document.body.style.overflow = "unset";
+  }, []);
 
   useEffect(() => {
     const fetchBackendData = async () => {
@@ -199,7 +196,6 @@ export default function HomePage() {
     fetchBackendData();
   }, []);
 
-  // Updated to check authentication before adding to cart
   const handleAddToCart = (product: Product) => {
     if (!user) {
       router.push('/login');
@@ -233,20 +229,18 @@ export default function HomePage() {
     setTimeout(() => setAddedItemAnimation(null), 1200);
   };
 
-  // Handler for custom batch orders checking authentication
   const handleCustomOrder = () => {
     if (!user) {
       router.push('/login');
       return;
     }
     
-    // Add custom roll to cart logic
     const customProduct: Product = {
       product_id: `custom-${Date.now()}`,
       product_name: `Custom Roll (${selectedFrosting.name})`,
       product_price: calculatedCustomPrice,
       product_description: `Customized with ${selectedFrosting.name} and ${selectedToppings.length} topping(s).`,
-      img_url: '/images/hero.png', // Fallback image for custom orders
+      img_url: '/images/hero.png',
       category_id: 'custom'
     };
 
@@ -305,12 +299,12 @@ export default function HomePage() {
   });
 
   const displayedProducts = filteredProducts.slice(0, 6);
-  const createSlug = (name: string): string => name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+  const createSlug = (name: string): string => name.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 
   return (
     <div className="min-h-screen font-serif text-[#4A2C2A] bg-[#FDF6E3]">
       
-      {/* --- WAVE CLIP PATH --- */}
+      {/* SVG Clip Path */}
       <svg className="absolute w-0 h-0 overflow-hidden" aria-hidden="true">
         <defs>
           <clipPath id="wave-clip" clipPathUnits="objectBoundingBox">
@@ -319,7 +313,7 @@ export default function HomePage() {
         </defs>
       </svg>
 
-      {/* --- FLOATING CART TRIGGER --- */}
+      {/* Floating Cart Button */}
       <div className="fixed bottom-6 right-6 z-50">
         <motion.button
           whileHover={{ scale: 1.08 }}
@@ -337,7 +331,7 @@ export default function HomePage() {
         </motion.button>
       </div>
 
-      {/* HERO HEADER */}
+      {/* Hero Header */}
       <header className="relative min-h-[75vh] flex flex-col items-center justify-center overflow-hidden px-6 z-10 pb-24 md:pb-28">
         <div className="absolute inset-0 z-0">
           <Image
@@ -353,7 +347,7 @@ export default function HomePage() {
           <div className="absolute inset-0 bg-[#FDF6E3]/10 z-10" />
         </div>
 
-        {/* --- SHOOTING STARS --- */}
+        {/* Shooting Stars Animation */}
         <div className="absolute inset-0 z-15 pointer-events-none overflow-hidden">
           {SHOOTING_STARS.map((star) => (
             <motion.div
@@ -408,7 +402,7 @@ export default function HomePage() {
         </motion.div>
       </header>
 
-      {/* --- MAIN CONTENT WRAPPER --- */}
+      {/* Main Content */}
       <main 
         className="relative z-20 -mt-20 md:-mt-24 bg-repeat pt-20 md:pt-28 pb-16"
         style={{ 
@@ -422,7 +416,7 @@ export default function HomePage() {
 
         <div className="relative z-10">
 
-          {/* SECTION 1: FLAVOR LIBRARY (PRODUCT CATALOGUE) */}
+          {/* Flavor Library */}
           <section className="pb-24 pt-12 md:pt-16 px-6 max-w-7xl mx-auto">
             <div className="flex flex-col items-center mb-8">
               <h3 className="text-4xl italic font-bold lowercase tracking-tighter">flavor library</h3>
@@ -570,7 +564,7 @@ export default function HomePage() {
             )}
           </section>
 
-          {/* SECTION 2: BUILD-YOUR-OWN ROLL CUSTOMIZER */}
+          {/* Roll Customizer */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10 bg-[#FDF6E3]/50">
             <div className="max-w-5xl mx-auto">
               <div className="text-center mb-16">
@@ -657,7 +651,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* SECTION 3: OVEN DROPS & BAKING SCHEDULE */}
+          {/* Schedule */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10">
             <div className="max-w-6xl mx-auto">
               <div className="grid md:grid-cols-3 gap-8 items-stretch">
@@ -699,7 +693,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* SECTION 4: MYSTERY BAKER PERK / SCRATCH CARD */}
+          {/* Mystery Scratch Offer */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10 bg-[#FDF6E3]/50">
             <div className="max-w-4xl mx-auto text-center">
               <span className="bg-[#4A2C2A] text-[#FDF6E3] px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-wider inline-flex items-center gap-1.5 mb-3">
@@ -745,7 +739,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* SECTION 5: EVENT CATERING & PARTY BOXES */}
+          {/* Catering & Party Boxes */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10">
             <div className="max-w-6xl mx-auto bg-[#FDF6E3] border-[3px] border-[#4A2C2A] rounded-[45px] p-8 md:p-14 shadow-[12px_12px_0px_0px_#4A2C2A] grid md:grid-cols-2 gap-12 items-center">
               <div>
@@ -789,7 +783,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* SECTION 6: BAKER'S SECRET REVIEWS / TESTIMONIALS */}
+          {/* Testimonials */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10 bg-[#FDF6E3]/60">
             <div className="max-w-6xl mx-auto">
               <div className="text-center mb-16">
@@ -834,7 +828,7 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* SECTION 7: BAKERY FAQ ACCORDION */}
+          {/* FAQ Accordion */}
           <section className="py-24 px-6 border-t-[3px] border-[#4A2C2A]/10 bg-[#FDF6E3]/40">
             <div className="max-w-3xl mx-auto">
               <div className="text-center mb-16">
@@ -887,7 +881,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      {/* --- CART DRAWER COMPONENT --- */}
+      {/* Cart Component Drawer */}
       <Cart
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}

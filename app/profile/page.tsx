@@ -11,6 +11,7 @@ import {
   EyeOff,
   Lock,
   SlidersHorizontal,
+  ShieldAlert,
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -58,6 +59,14 @@ export default function ProfilePage() {
 
   const profileArtistId = params?.id || user?._id || user?.id;
   const isOwner = Boolean(user && (user._id === profileArtistId || user.id === profileArtistId));
+
+  // Check if the current user logged in via Google
+  const isGoogleAccount = Boolean(
+    user?.provider === "google" ||
+    user?.isGoogleUser ||
+    user?.googleId ||
+    user?.authProvider === "google"
+  );
 
   const [formData, setFormData] = useState({
     name: "",
@@ -171,7 +180,7 @@ export default function ProfilePage() {
         <p className="text-xs font-bold uppercase tracking-widest text-[#5A7A88] animate-pulse">
           Loading Profile...
         </p>
-      </div>
+      </div> overflow-hidden
     );
   }
 
@@ -212,7 +221,7 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (updating || !isOwner) return;
+    if (updating || !isOwner || isGoogleAccount) return;
 
     if (password.trim() !== "") {
       if (password.length < 6) {
@@ -277,7 +286,7 @@ export default function ProfilePage() {
 
   return (
     <main
-      className="min-h-screen bg-cover bg-center bg-no-repeat text-[#3E3835] py-16 px-4 md:px-8 relative pt-65 overflow-hidden font-sans"
+      className="min-h-screen bg-cover bg-center bg-no-repeat text-[#3E3835] py-16 px-4 md:px-8 relative pt-65 overflow-x-hidden font-sans"
       style={{
         backgroundImage: `url('/images/bg.png')`,
         backgroundColor: "#D0E3EA",
@@ -369,96 +378,110 @@ export default function ProfilePage() {
                   <SlidersHorizontal size={14} /> Account Parameters
                 </h3>
 
-                <form onSubmit={handleUpdateProfile} className="space-y-3.5">
-                  <div>
-                    <label className="block text-xs font-bold text-[#3E3835] mb-1">Email Address</label>
-                    <input
-                      type="text"
-                      value={user?.email || ""}
-                      disabled
-                      className="w-full p-2.5 bg-[#FFFDF9]/60 rounded-xl border border-[#E5E0D8] text-xs font-medium text-[#7A736E] cursor-not-allowed"
-                    />
+                {isGoogleAccount ? (
+                  <div className="bg-[#FFFDF9] border border-[#E5E0D8] rounded-2xl p-6 text-center space-y-3">
+                    <div className="w-10 h-10 bg-[#FDF0F0] text-[#D96B6B] rounded-full flex items-center justify-center mx-auto">
+                      <ShieldAlert size={20} />
+                    </div>
+                    <div className="inline-block bg-[#FDF0F0] text-[#D96B6B] text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full">
+                      Unable to edit (Google Account)
+                    </div>
+                    <p className="text-xs text-[#7A736E] leading-relaxed max-w-xs mx-auto">
+                      Your avatar, display name, and security credentials are managed directly through Google.
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#3E3835] mb-1">Display Name</label>
-                    <input
-                      type="text"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Display Name"
-                      className="w-full p-2.5 bg-[#FFFDF9] rounded-xl border border-[#E5E0D8] text-xs font-medium focus:outline-none focus:border-[#5A7A88]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-[#3E3835] mb-1">Avatar Image URL</label>
-                    <input
-                      type="url"
-                      value={formData.photoUrl}
-                      onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
-                      placeholder="https://example.com/avatar.jpg"
-                      className="w-full p-2.5 bg-[#FFFDF9] rounded-xl border border-[#E5E0D8] text-xs font-medium focus:outline-none focus:border-[#5A7A88]"
-                    />
-                  </div>
-
-                  {/* Password Fields */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#E5E0D8]">
+                ) : (
+                  <form onSubmit={handleUpdateProfile} className="space-y-3.5">
                     <div>
-                      <label className="block text-xs font-bold text-[#3E3835] mb-1">New Password</label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full pl-9 pr-8 py-2.5 bg-[#FFFDF9] border border-[#E5E0D8] rounded-xl text-xs focus:outline-none focus:border-[#5A7A88]"
-                        />
-                        <Lock size={14} className="absolute left-3 top-3 text-[#A39E93]" />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-2.5 top-3 text-[#A39E93] hover:text-[#3E3835]"
-                        >
-                          {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
-                      </div>
+                      <label className="block text-xs font-bold text-[#3E3835] mb-1">Email Address</label>
+                      <input
+                        type="text"
+                        value={user?.email || ""}
+                        disabled
+                        className="w-full p-2.5 bg-[#FFFDF9]/60 rounded-xl border border-[#E5E0D8] text-xs font-medium text-[#7A736E] cursor-not-allowed"
+                      />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-[#3E3835] mb-1">Confirm Password</label>
-                      <div className="relative">
-                        <input
-                          type={showConfirmPassword ? "text" : "password"}
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="••••••••"
-                          className="w-full pl-9 pr-8 py-2.5 bg-[#FFFDF9] border border-[#E5E0D8] rounded-xl text-xs focus:outline-none focus:border-[#5A7A88]"
-                        />
-                        <Lock size={14} className="absolute left-3 top-3 text-[#A39E93]" />
-                        <button
-                          type="button"
-                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute right-2.5 top-3 text-[#A39E93] hover:text-[#3E3835]"
-                        >
-                          {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                        </button>
+                      <label className="block text-xs font-bold text-[#3E3835] mb-1">Display Name</label>
+                      <input
+                        type="text"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="Display Name"
+                        className="w-full p-2.5 bg-[#FFFDF9] rounded-xl border border-[#E5E0D8] text-xs font-medium focus:outline-none focus:border-[#5A7A88]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#3E3835] mb-1">Avatar Image URL</label>
+                      <input
+                        type="url"
+                        value={formData.photoUrl}
+                        onChange={(e) => setFormData({ ...formData, photoUrl: e.target.value })}
+                        placeholder="https://example.com/avatar.jpg"
+                        className="w-full p-2.5 bg-[#FFFDF9] rounded-xl border border-[#E5E0D8] text-xs font-medium focus:outline-none focus:border-[#5A7A88]"
+                      />
+                    </div>
+
+                    {/* Password Fields */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#E5E0D8]">
+                      <div>
+                        <label className="block text-xs font-bold text-[#3E3835] mb-1">New Password</label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full pl-9 pr-8 py-2.5 bg-[#FFFDF9] border border-[#E5E0D8] rounded-xl text-xs focus:outline-none focus:border-[#5A7A88]"
+                          />
+                          <Lock size={14} className="absolute left-3 top-3 text-[#A39E93]" />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-2.5 top-3 text-[#A39E93] hover:text-[#3E3835]"
+                          >
+                            {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-[#3E3835] mb-1">Confirm Password</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="••••••••"
+                            className="w-full pl-9 pr-8 py-2.5 bg-[#FFFDF9] border border-[#E5E0D8] rounded-xl text-xs focus:outline-none focus:border-[#5A7A88]"
+                          />
+                          <Lock size={14} className="absolute left-3 top-3 text-[#A39E93]" />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-2.5 top-3 text-[#A39E93] hover:text-[#3E3835]"
+                          >
+                            {showConfirmPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  <button
-                    type="submit"
-                    disabled={updating || !isFormChanged}
-                    className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm mt-4 transition-all ${
-                      isFormChanged && !updating
-                        ? "bg-[#D96B6B] text-white hover:bg-[#C25858] cursor-pointer"
-                        : "bg-[#E5E0D8] text-[#A39E93] cursor-not-allowed"
-                    }`}
-                  >
-                    <Paintbrush size={14} /> {updating ? "Saving..." : "Save Updates"}
-                  </button>
-                </form>
+                    <button
+                      type="submit"
+                      disabled={updating || !isFormChanged}
+                      className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm mt-4 transition-all ${
+                        isFormChanged && !updating
+                          ? "bg-[#D96B6B] text-white hover:bg-[#C25858] cursor-pointer"
+                          : "bg-[#E5E0D8] text-[#A39E93] cursor-not-allowed"
+                      }`}
+                    >
+                      <Paintbrush size={14} /> {updating ? "Saving..." : "Save Updates"}
+                    </button>
+                  </form>
+                )}
               </motion.div>
             ) : (
               <motion.div
