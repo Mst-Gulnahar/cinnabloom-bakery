@@ -4,9 +4,14 @@ import React, { useEffect, useState } from 'react';
 interface FullscreenLoaderProps {
   /** Optional delay in ms to keep the splash visible for visual impact */
   minLoadingTime?: number;
+  /** Optional prop to satisfy <Suspense fallback={<FullscreenLoader fullScreen />}> calls */
+  fullScreen?: boolean;
 }
 
-export default function FullscreenLoader({ minLoadingTime = 1200 }: FullscreenLoaderProps) {
+export default function FullscreenLoader({ 
+  minLoadingTime = 1200,
+  fullScreen = true
+}: FullscreenLoaderProps) {
   const [mounted, setMounted] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
 
@@ -53,7 +58,9 @@ export default function FullscreenLoader({ minLoadingTime = 1200 }: FullscreenLo
 
       {/* Backdrop: Faded Light Blue sampled from your background section */}
       <div 
-        className={`fixed inset-0 w-screen h-screen bg-[#D0E3EA] flex flex-col items-center justify-center z-[99999] transition-opacity duration-600 ease-out select-none pointer-events-auto ${
+        className={`${
+          fullScreen ? 'fixed inset-0 w-screen h-screen' : 'relative w-full h-full min-h-[300px]'
+        } bg-[#D0E3EA] flex flex-col items-center justify-center z-[99999] transition-opacity duration-600 ease-out select-none pointer-events-auto ${
           isFadingOut ? 'opacity-0' : 'opacity-100'
         }`}
       >
