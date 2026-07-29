@@ -15,7 +15,7 @@ import {
   Loader2
 } from "lucide-react";
 import RiderChat from "../components/RiderChat";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
@@ -208,7 +208,8 @@ export default function OrderHistory() {
   const [now, setNow] = useState(Date.now());
   const router = useRouter();
 
-  const userId = user?.id || user?._id;
+  // Safely check for user ID without triggering property missing TypeScript errors
+  const userId = user?.id || (user as any)?._id;
 
   useEffect(() => {
     const userIdentifier = user?.email || userId;
@@ -324,6 +325,8 @@ export default function OrderHistory() {
     [user?.email, userId]
   );
 
+  const visibleHistory = history.filter((o) => !clearedOrderIds.includes(o.orderId));
+
   const wipeCompletedHistoryLocally = () => {
     const deliveredIds = visibleHistory
       .filter((order) => {
@@ -346,8 +349,6 @@ export default function OrderHistory() {
       }
     }
   };
-
-  const visibleHistory = history.filter((o) => !clearedOrderIds.includes(o.orderId));
 
   return (
     <div className="min-h-screen bg-[#FAF7F2] p-6 pt-24 pb-32 font-sans text-[#4A453E]">
@@ -412,7 +413,7 @@ export default function OrderHistory() {
               <AnimatePresence mode="popLayout">
                 {visibleHistory.map((order) => (
                   <OrderHistoryItem
-                    key={order.orderId || order._id}
+                    key={order.orderId || String(order._id)}
                     order={order}
                     now={now}
                     isActiveMap={!!activeMaps[order.orderId]}
