@@ -29,7 +29,7 @@ export default function NotFound() {
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             className="text-7xl select-none"
           >
-            🍥
+            🥐
           </motion.div>
           <motion.span
             initial={{ opacity: 0, scale: 0.5 }}
