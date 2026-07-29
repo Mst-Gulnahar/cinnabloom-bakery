@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Suspense } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import CinnabloomSpinner from "./components/CinnabloomSpinner";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
 import { GoogleOAuthProvider } from "@react-oauth/google";
@@ -39,7 +41,9 @@ export default function RootLayout({
             <Navbar />
 
             <main className="flex-1">
-              {children}
+              <Suspense fallback={<CinnabloomSpinner fullScreen />}>
+                {children}
+              </Suspense>
             </main>
 
             <Footer />
