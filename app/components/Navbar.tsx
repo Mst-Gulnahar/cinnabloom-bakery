@@ -8,7 +8,6 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function Header() {
   const router = useRouter();
-  // Aliasing logoutUser -> logout fixes the TypeError instantly
   const { user, logoutUser: logout } = useAuth(); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [orderCount, setOrderCount] = useState<number>(0);
@@ -16,11 +15,21 @@ export default function Header() {
 
   const isLoggedIn = !!user;
   const isAdmin = user?.role === 'admin';
-  
-  // CHANGED: Dashboard nav now explicitly takes user to /items/manage
   const dashboardPath = '/items/manage';
 
-  // Sync active/total orders count for badge
+  // Helper to resolve profile picture across all possible schema property names
+  const getUserAvatar = () => {
+    if (!user) return null;
+    const u = user as any;
+    const rawUrl = u.avatar || u.profilePicture || u.photoUrl;
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.trim() !== "" && !rawUrl.includes("ui-avatars.com")) {
+      return rawUrl;
+    }
+    return null;
+  };
+
+  const userAvatarUrl = getUserAvatar();
+
   useEffect(() => {
     const syncOrderCount = () => {
       const saved = localStorage.getItem("chirp_history");
@@ -44,7 +53,7 @@ export default function Header() {
   return (
     <header className="w-full fixed top-0 left-0 z-[9999]">
 
-      {/* MAIN NAVBAR - Rounded Bubble Container */}
+      {/* MAIN NAVBAR - Rounded Container */}
       <nav className="bg-[#FFFDF5]/95 backdrop-blur-md px-6 md:px-10 py-3.5 flex items-center justify-between text-[#4A2C2A] border-b border-[#E8E1D5] shadow-xs">
         
         {/* LOGO */}
@@ -70,7 +79,7 @@ export default function Header() {
             contact
           </Link>
 
-          {/* LOGGED IN NAVIGATION - SHOW DASHBOARD */}
+          {/* LOGGED IN NAVIGATION */}
           {isLoggedIn && (
             <Link 
               href={dashboardPath} 
@@ -90,7 +99,7 @@ export default function Header() {
             </Link>
           )}
 
-          {/* PUBLIC AUTH LINKS (Hidden when logged in) */}
+          {/* PUBLIC AUTH LINKS */}
           {!isLoggedIn && (
             <>
               <Link href="/signup" className="px-3.5 py-1.5 rounded-full hover:bg-[#F3EDE2] transition-colors">
@@ -127,7 +136,6 @@ export default function Header() {
               onMouseEnter={() => setUserDropdownOpen(true)}
               onMouseLeave={() => setUserDropdownOpen(false)}
             >
-              {/* CLICKING AVATAR NAVIGATES DIRECTLY TO /profile */}
               <button
                 onClick={() => {
                   setUserDropdownOpen(false);
@@ -136,8 +144,16 @@ export default function Header() {
                 className="w-9 h-9 rounded-full bg-[#E5E0D8] border-2 border-[#D96B6B] flex items-center justify-center overflow-hidden hover:scale-105 transition-all shadow-xs cursor-pointer"
                 title={user?.name || "Account"}
               >
-                {(user as any)?.avatar ? (
-                  <img src={(user as any).avatar} alt={user.name || "User"} className="w-full h-full object-cover" />
+                {userAvatarUrl ? (
+                  <img 
+                    src={userAvatarUrl} 
+                    alt={user?.name || "User"} 
+                    className="w-full h-full object-cover" 
+                    onError={(e) => {
+                      // Fallback if image fails to load
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
                 ) : (
                   <span className="text-xs font-black text-[#3E3835]">
                     {user?.name ? user.name.charAt(0).toUpperCase() : <UserIcon size={16} />}

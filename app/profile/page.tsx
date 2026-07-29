@@ -257,7 +257,7 @@ export default function ProfilePage() {
 
   return (
     <main 
-      className="min-h-screen bg-cover bg-center bg-no-repeat text-[#3E3835] py-16 px-4 md:px-8 relative pt-28 overflow-hidden font-sans"
+      className="min-h-screen bg-cover bg-center bg-no-repeat text-[#3E3835] py-16 px-4 md:px-8 relative pt-65 overflow-hidden font-sans"
       style={{
         backgroundImage: `url('/images/bg.png')`,
         backgroundColor: '#D0E3EA'
