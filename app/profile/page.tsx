@@ -15,7 +15,8 @@ import {
   CheckCircle2,
   AlertCircle
 } from "lucide-react";
-import api from "../../../lib/axios";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 const containerVariants = {
   hidden: { opacity: 0, y: 20 },
@@ -54,12 +55,13 @@ interface ToastState {
 }
 
 export default function ProfilePage() {
-  const { user, isLoading, logout, setUser } = useAuth();
+  // Aliased 'loading' to 'isLoading' to match your AuthContext definition
+  const { user, loading: isLoading, logoutUser: logout, setUser } = useAuth() as any;
   const router = useRouter();
   const params = useParams();
 
   const profileArtistId = params?.id || user?.id || user?._id;
-  const isOwner = user && (user.id === profileArtistId || user._id === profileArtistId);
+  const isOwner = Boolean(user && (user.id === profileArtistId || user._id === profileArtistId));
 
   const [formData, setFormData] = useState({
     name: "",
@@ -97,19 +99,30 @@ export default function ProfilePage() {
       if (user && isOwner) {
         try {
           const currentId = user.id || user._id;
-          const response = await api.get(`/api/auth/user/${currentId}`);
-          const freshUser = response.data?.user || response.data;
+          const token = localStorage.getItem("token");
 
-          if (freshUser) {
-            setUser(freshUser);
-            localStorage.setItem("user", JSON.stringify(freshUser));
+          const res = await fetch(`${API_BASE_URL}/api/auth/user/${currentId}`, {
+            headers: {
+              "Content-Type": "application/json",
+              ...(token && { Authorization: `Bearer ${token}` }),
+            },
+          });
 
-            const savedDbImage = freshUser.profilePicture || freshUser.photoUrl || freshUser.avatar || "";
-            setFormData({
-              name: freshUser.name || "",
-              photoUrl: savedDbImage.includes("ui-avatars.com") ? "" : savedDbImage,
-            });
-            return;
+          if (res.ok) {
+            const data = await res.json();
+            const freshUser = data?.user || data;
+
+            if (freshUser) {
+              if (setUser) setUser(freshUser);
+              localStorage.setItem("user", JSON.stringify(freshUser));
+
+              const savedDbImage = freshUser.profilePicture || freshUser.photoUrl || freshUser.avatar || "";
+              setFormData({
+                name: freshUser.name || "",
+                photoUrl: savedDbImage.includes("ui-avatars.com") ? "" : savedDbImage,
+              });
+              return;
+            }
           }
         } catch (err) {
           console.error("Failed to sync fresh user dataset:", err);
@@ -130,9 +143,10 @@ export default function ProfilePage() {
     const fetchArtistInfoOnly = async () => {
       if (!profileArtistId || isOwner) return;
       try {
-        const userRes = await api.get(`/api/auth/user/${profileArtistId}`);
-        if (userRes.data) {
-          setPublicArtistInfo(userRes.data.user || userRes.data);
+        const res = await fetch(`${API_BASE_URL}/api/auth/user/${profileArtistId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setPublicArtistInfo(data.user || data);
         }
       } catch (e) {
         console.error("Could not fetch user info", e);
@@ -153,7 +167,7 @@ export default function ProfilePage() {
           ✨
         </motion.div>
         <p className="text-xs font-bold uppercase tracking-widest text-[#5A7A88] animate-pulse">
-          Loading Creator Environment...
+          Loading Profile...
         </p>
       </div>
     );
@@ -209,21 +223,33 @@ export default function ProfilePage() {
         ...(password.trim() !== "" && { password })
       };
 
-      const response = await api.put("/api/auth/update-profile", payload);
+      const token = localStorage.getItem("token");
 
-      if (response.data?.success) {
-        const updatedUser = response.data.user;
-        setUser(updatedUser);
+      const res = await fetch(`${API_BASE_URL}/api/auth/update-profile`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const responseData = await res.json();
+
+      if (res.ok && responseData?.success) {
+        const updatedUser = responseData.user;
+        if (setUser) setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
         
         setPassword("");
         setConfirmPassword("");
         setIsEditing(false);
         triggerToast("Profile saved successfully.", "success");
+      } else {
+        triggerToast(responseData?.message || "Failed to sync changes with server.", "error");
       }
     } catch (err: any) {
-      const errTxt = err?.response?.data?.message || "Failed to sync changes with server.";
-      triggerToast(errTxt, "error");
+      triggerToast("Failed to connect to server.", "error");
     } finally {
       setUpdating(false);
     }
@@ -312,12 +338,14 @@ export default function ProfilePage() {
                   >
                     {isEditing ? "View Profile Summary" : "Edit Profile"}
                   </button>
-                  <button
-                    onClick={logout}
-                    className="w-full text-center px-4 py-2.5 rounded-xl bg-[#FDF0F0] text-[#D96B6B] hover:bg-[#FADADA] text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <LogOut size={14} /> Sign Out
-                  </button>
+                  {logout && (
+                    <button
+                      onClick={logout}
+                      className="w-full text-center px-4 py-2.5 rounded-xl bg-[#FDF0F0] text-[#D96B6B] hover:bg-[#FADADA] text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <LogOut size={14} /> Sign Out
+                    </button>
+                  )}
                 </div>
               )}
             </div>
