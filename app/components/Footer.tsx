@@ -9,8 +9,18 @@ import { useAuth } from "../../context/AuthContext";
 export default function Footer() {
   const { user } = useAuth();
 
-  // Safe checks for user avatar image
-  const userAvatar = (user as any)?.image || (user as any)?.avatarUrl;
+  // Helper to safely resolve user avatar image across all possible schema fields
+  const getUserAvatar = () => {
+    if (!user) return null;
+    const u = user as any;
+    const rawUrl = u.avatar || u.profilePicture || u.photoUrl || u.avatarUrl || u.image;
+    if (rawUrl && typeof rawUrl === "string" && rawUrl.trim() !== "" && !rawUrl.includes("ui-avatars.com")) {
+      return rawUrl;
+    }
+    return null;
+  };
+
+  const userAvatar = getUserAvatar();
 
   // Helper for initial fallback if image fails or isn't present
   const userInitial = user?.name 
@@ -18,6 +28,14 @@ export default function Footer() {
     : user?.email 
       ? user.email.charAt(0).toUpperCase() 
       : "B";
+
+  // Social icon list mapping to /images/<icon-name>.png
+  const socialIcons = [
+    { name: "Instagram", icon: "/images/ig.png", alt: "IG" },
+    { name: "TikTok", icon: "/images/tk.png", alt: "TK" },
+    { name: "YouTube", icon: "/images/yt.png", alt: "YT" },
+    { name: "Pinterest", icon: "/images/pin.png", alt: "PIN" },
+  ];
 
   return (
     <footer className="relative bg-[#4A2C2A] text-[#FDF6E3] pt-24 pb-12 overflow-hidden mt-12">
@@ -82,26 +100,29 @@ export default function Footer() {
             <div className="flex items-center gap-4">
               <h2 className="text-4xl italic font-bold tracking-tighter">Cinnabloom</h2>
               
-              {/* --- DYNAMIC AUTH STATUS / AVATAR --- */}
+              {/* --- DYNAMIC AUTH STATUS / AVATAR WITH LINK TO PROFILE --- */}
               {user ? (
-                <div className="flex items-center gap-2 bg-[#FDF6E3]/10 border border-[#FDF6E3]/30 px-3 py-1.5 rounded-full">
-                  {userAvatar ? (
-                    <Image
-                      src={userAvatar}
-                      alt={user.name || "User Profile"}
-                      width={28}
-                      height={28}
-                      className="rounded-full object-cover border border-[#FDF6E3]"
-                    />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-[#C84B31] text-[#FDF6E3] flex items-center justify-center font-black text-xs border border-[#FDF6E3]">
-                      {userInitial}
-                    </div>
-                  )}
-                  <span className="text-[10px] font-black uppercase tracking-wider text-[#FDF6E3] pr-1">
-                    {user.name ? user.name.split(" ")[0] : "Baker"}
-                  </span>
-                </div>
+                <Link href="/profile">
+                  <div className="flex items-center gap-2 bg-[#FDF6E3]/10 border border-[#FDF6E3]/30 px-3 py-1.5 rounded-full hover:bg-[#FDF6E3]/20 transition-all cursor-pointer">
+                    {userAvatar ? (
+                      <Image
+                        src={userAvatar}
+                        alt={user.name || "User Profile"}
+                        width={28}
+                        height={28}
+                        className="rounded-full object-cover border border-[#FDF6E3] w-7 h-7"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-7 h-7 rounded-full bg-[#C84B31] text-[#FDF6E3] flex items-center justify-center font-black text-xs border border-[#FDF6E3]">
+                        {userInitial}
+                      </div>
+                    )}
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[#FDF6E3] pr-1">
+                      {user.name ? user.name.split(" ")[0] : "Baker"}
+                    </span>
+                  </div>
+                </Link>
               ) : (
                 <Link href="/login">
                   <button className="bg-[#C84B31] text-white hover:bg-[#FDF6E3] hover:text-[#4A2C2A] px-4 py-1.5 rounded-full text-[10px] uppercase tracking-widest font-black border border-[#FDF6E3]/20 transition-all shadow-sm">
@@ -114,14 +135,23 @@ export default function Footer() {
             <p className="text-xs font-sans opacity-70 leading-relaxed max-w-sm">
               Crafting gooey, golden perfection for your quiet mornings and cozy gatherings. Made with all-natural ingredients and a touch of magic.
             </p>
+
+            {/* --- FULL-BLEED SOCIAL MEDIA IMAGE ICONS --- */}
             <div className="flex items-center gap-3 pt-2">
-              {['IG', 'TK', 'YT', 'PIN'].map((social) => (
-                <button 
-                  key={social} 
-                  className="w-10 h-10 bg-[#FDF6E3]/10 hover:bg-[#C84B31] border border-[#FDF6E3]/20 rounded-full flex items-center justify-center text-[10px] font-black transition-all"
+              {socialIcons.map((social) => (
+                <a 
+                  key={social.name} 
+                  href="#"
+                  aria-label={social.name}
+                  className="relative w-10 h-10 rounded-full overflow-hidden transition-all hover:scale-110 shadow-sm block"
                 >
-                  {social}
-                </button>
+                  <Image 
+                    src={social.icon} 
+                    alt={social.alt} 
+                    fill
+                    className="object-cover"
+                  />
+                </a>
               ))}
             </div>
           </div>
@@ -133,7 +163,6 @@ export default function Footer() {
               <li><Link href="/explore" className="hover:text-[#C84B31] transition-colors">Explore Menu</Link></li>
               <li><Link href="/contact" className="hover:text-[#C84B31] transition-colors">Contact</Link></li>
               <li><Link href="/about" className="hover:text-[#C84B31] transition-colors">About Us</Link></li>
-              <li><Link href="/explore" className="hover:text-[#C84B31] transition-colors">Gluten-Free Treats</Link></li>
             </ul>
           </div>
 
