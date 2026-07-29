@@ -204,7 +204,6 @@ export default function ProfilePage() {
     password.trim() !== "";
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
-    // 1. MUST be at the top to prevent page refresh on form submit
     e.preventDefault();
 
     if (!isFormChanged || updating || !isOwner) return;
@@ -246,25 +245,21 @@ export default function ProfilePage() {
           profilePicture: payload.photoUrl
         };
 
-        // 2. Immediately update state across context & local form state
         if (setUser) setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        setFormData({
-          name: updatedUser.name || "",
-          photoUrl: updatedUser.profilePicture || updatedUser.photoUrl || "",
-        });
+        triggerToast("Profile saved! Reloading...", "success");
 
-        setPassword("");
-        setConfirmPassword("");
-        setIsEditing(false);
-        triggerToast("Profile saved successfully.", "success");
+        // 🔄 AUTORELOAD after 600ms delay to show toast
+        setTimeout(() => {
+          window.location.reload();
+        }, 600);
       } else {
         triggerToast(responseData?.message || "Failed to sync changes with server.", "error");
+        setUpdating(false);
       }
     } catch (err: any) {
       triggerToast("Failed to connect to server.", "error");
-    } finally {
       setUpdating(false);
     }
   };
