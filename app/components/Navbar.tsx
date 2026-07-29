@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ShoppingBag, Menu, X, LayoutDashboard, PlusCircle, User as UserIcon, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext'; 
 
 export default function Header() {
+  const router = useRouter();
   // Aliasing logoutUser -> logout fixes the TypeError instantly
   const { user, logoutUser: logout } = useAuth(); 
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
@@ -120,9 +122,17 @@ export default function Header() {
 
           {/* USER AVATAR OR LOGIN BUTTON */}
           {isLoggedIn ? (
-            <div className="relative">
+            <div 
+              className="relative"
+              onMouseEnter={() => setUserDropdownOpen(true)}
+              onMouseLeave={() => setUserDropdownOpen(false)}
+            >
+              {/* CLICKING AVATAR NAVIGATES DIRECTLY TO /profile */}
               <button
-                onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+                onClick={() => {
+                  setUserDropdownOpen(false);
+                  router.push('/profile');
+                }}
                 className="w-9 h-9 rounded-full bg-[#E5E0D8] border-2 border-[#D96B6B] flex items-center justify-center overflow-hidden hover:scale-105 transition-all shadow-xs cursor-pointer"
                 title={user?.name || "Account"}
               >
@@ -137,16 +147,24 @@ export default function Header() {
 
               {/* USER PROFILE DROPDOWN */}
               {userDropdownOpen && (
-                <div 
-                  className="absolute right-0 mt-2 w-48 bg-[#FFFDF9] border border-[#E8E1D5] rounded-2xl shadow-lg p-2 flex flex-col gap-1 text-xs font-semibold z-50"
-                  onMouseLeave={() => setUserDropdownOpen(false)}
-                >
-                  <div className="px-3 py-2 border-b border-[#E8E1D5] mb-1">
+                <div className="absolute right-0 mt-2 w-48 bg-[#FFFDF9] border border-[#E8E1D5] rounded-2xl shadow-lg p-2 flex flex-col gap-1 text-xs font-semibold z-50">
+                  <Link 
+                    href="/profile"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="px-3 py-2 border-b border-[#E8E1D5] mb-1 hover:bg-[#F3EDE2] rounded-xl transition-colors block"
+                  >
                     <p className="font-bold text-[#3E3835] truncate">{user?.name || "Welcome!"}</p>
                     <p className="text-[10px] text-[#8C857B] font-normal capitalize">{user?.role || "Customer"}</p>
-                  </div>
+                  </Link>
 
-                  {/* CHANGED: Fixed path here from hardcoded items/add to dashboardPath (/items/manage) */}
+                  <Link 
+                    href="/profile"
+                    onClick={() => setUserDropdownOpen(false)}
+                    className="px-3 py-2 rounded-xl hover:bg-[#F3EDE2] flex items-center gap-2 text-[#3E3835]"
+                  >
+                    <UserIcon size={14} /> Profile
+                  </Link>
+
                   <Link 
                     href={dashboardPath}
                     onClick={() => setUserDropdownOpen(false)}
@@ -218,6 +236,13 @@ export default function Header() {
           {isLoggedIn && (
             <>
               <div className="h-[1px] w-12 bg-[#E8E1D5] mx-auto my-1" />
+              <Link 
+                href="/profile" 
+                onClick={() => setMobileMenuOpen(false)} 
+                className="text-[#4A2C2A] py-1 flex items-center justify-center gap-1.5"
+              >
+                <UserIcon size={15} /> profile
+              </Link>
               <Link 
                 href={dashboardPath} 
                 onClick={() => setMobileMenuOpen(false)} 
