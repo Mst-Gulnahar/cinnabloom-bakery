@@ -4,13 +4,16 @@ import React, { useEffect, useState } from 'react';
 interface FullscreenLoaderProps {
   /** Optional delay in ms to keep the splash visible for visual impact */
   minLoadingTime?: number;
-  /** Optional prop to satisfy <Suspense fallback={<FullscreenLoader fullScreen />}> calls */
+  /** Optional prop for fullScreen mode */
   fullScreen?: boolean;
+  /** Optional custom text label */
+  label?: string;
 }
 
 export default function FullscreenLoader({ 
   minLoadingTime = 1200,
-  fullScreen = true
+  fullScreen = true,
+  label = "Organizing the bakery..."
 }: FullscreenLoaderProps) {
   const [mounted, setMounted] = useState(true);
   const [isFadingOut, setIsFadingOut] = useState(false);
@@ -56,7 +59,7 @@ export default function FullscreenLoader({
         }
       `}} />
 
-      {/* Backdrop: Faded Light Blue sampled from your background section */}
+      {/* Backdrop */}
       <div 
         className={`${
           fullScreen ? 'fixed inset-0 w-screen h-screen' : 'relative w-full h-full min-h-[300px]'
@@ -66,7 +69,7 @@ export default function FullscreenLoader({
       >
         <div className="relative w-24 h-24 flex items-center justify-center">
           
-          {/* Outer Ring: Deep Chocolate Espresso Accent */}
+          {/* Outer Ring */}
           <div 
             className="absolute inset-0 rounded-full border-2 border-t-[#3D2B1F] border-r-transparent border-b-[#3D2B1F]/20 border-l-transparent"
             style={{
@@ -74,7 +77,7 @@ export default function FullscreenLoader({
             }}
           />
 
-          {/* Inner Ring: Warm Terracotta Cinnamon */}
+          {/* Inner Ring */}
           <div 
             className="absolute w-[80%] h-[80%] rounded-full border-[3px] border-t-transparent border-r-[#C27B66] border-b-transparent border-l-[#C27B66]/40"
             style={{
@@ -82,7 +85,7 @@ export default function FullscreenLoader({
             }}
           />
 
-          {/* Core: Warm Cream Glow */}
+          {/* Core */}
           <div 
             className="absolute w-4 h-4 bg-[#FDF6E3] rounded-full shadow-[0_0_20px_6px_rgba(194,123,102,0.4)]"
             style={{
@@ -96,7 +99,7 @@ export default function FullscreenLoader({
           <span 
             className="text-[11px] font-bold text-[#3D2B1F] tracking-[0.35em] uppercase font-sans opacity-85"
           >
-            Organizing the bakery...
+            {label}
           </span>
 
           <div className="w-14 h-[2px] bg-[#EBE1D1] relative overflow-hidden rounded-full">
