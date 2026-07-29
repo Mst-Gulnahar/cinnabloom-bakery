@@ -55,7 +55,6 @@ interface ToastState {
 }
 
 export default function ProfilePage() {
-  // Aliased 'loading' to 'isLoading' to match your AuthContext definition
   const { user, loading: isLoading, logoutUser: logout, setUser } = useAuth() as any;
   const router = useRouter();
   const params = useParams();
@@ -173,19 +172,20 @@ export default function ProfilePage() {
     );
   }
 
+  // Preview live changes in real-time when editing
   const displayProfileName = isOwner 
-    ? (user?.name || "Your Studio") 
+    ? (isEditing && formData.name.trim() !== "" ? formData.name : (user?.name || "Your Studio")) 
     : (publicArtistInfo?.name || "Verified Creator");
 
   const getAvatarUrl = () => {
     const isValidUrl = (url: any) => url && String(url).trim() !== "" && !String(url).includes("ui-avatars.com");
 
     if (isOwner) {
-      if (formData.photoUrl && formData.photoUrl.trim() !== "") return formData.photoUrl;
+      if (formData.photoUrl && formData.photoUrl.trim() !== "") return formData.photoUrl.trim();
       if (isValidUrl(user?.profilePicture)) return user?.profilePicture;
       if (isValidUrl(user?.photoUrl)) return user?.photoUrl;
       if (isValidUrl((user as any)?.avatar)) return (user as any).avatar;
-      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(user?.name || "Studio")}`;
+      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayProfileName)}`;
     } else {
       if (isValidUrl((publicArtistInfo as any)?.profilePicture)) return (publicArtistInfo as any).profilePicture;
       if (isValidUrl((publicArtistInfo as any)?.photoUrl)) return (publicArtistInfo as any).photoUrl;
@@ -204,8 +204,10 @@ export default function ProfilePage() {
     password.trim() !== "";
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
-    if (!isFormChanged || updating || !isOwner) return;
+    // 1. MUST be at the top to prevent page refresh on form submit
     e.preventDefault();
+
+    if (!isFormChanged || updating || !isOwner) return;
 
     if (password !== confirmPassword) {
       triggerToast("Passwords do not match.", "error");
@@ -237,10 +239,22 @@ export default function ProfilePage() {
       const responseData = await res.json();
 
       if (res.ok && responseData?.success) {
-        const updatedUser = responseData.user;
+        const updatedUser = responseData.user || {
+          ...user,
+          name: payload.name,
+          photoUrl: payload.photoUrl,
+          profilePicture: payload.photoUrl
+        };
+
+        // 2. Immediately update state across context & local form state
         if (setUser) setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
-        
+
+        setFormData({
+          name: updatedUser.name || "",
+          photoUrl: updatedUser.profilePicture || updatedUser.photoUrl || "",
+        });
+
         setPassword("");
         setConfirmPassword("");
         setIsEditing(false);
@@ -293,7 +307,7 @@ export default function ProfilePage() {
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start">
         
-        {/* LEFT CONTAINER */}
+        {/* LEFT CONTAINER (Live Preview Card) */}
         <motion.div 
           variants={containerVariants as any}
           initial="hidden"
@@ -306,6 +320,7 @@ export default function ProfilePage() {
               <div className="relative">
                 <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#FFFDF9] border border-[#E5E0D8] p-1 shadow-sm flex items-center justify-center">
                   <img
+                    key={displayProfilePicture}
                     src={displayProfilePicture}
                     alt={displayProfileName}
                     className="w-full h-full object-cover rounded-xl"
