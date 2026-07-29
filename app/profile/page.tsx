@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { useRouter, useParams } from "next/navigation";
@@ -56,7 +56,6 @@ export default function ProfilePage() {
   const router = useRouter();
   const params = useParams();
 
-  // Prioritize MongoDB _id first to prevent sending OAuth Google ID string to endpoints
   const profileArtistId = params?.id || user?._id || user?.id;
   const isOwner = Boolean(user && (user._id === profileArtistId || user.id === profileArtistId));
 
@@ -75,15 +74,27 @@ export default function ProfilePage() {
   const [updating, setUpdating] = useState(false);
   const [toastMessage, setToastMessage] = useState<ToastState | null>(null);
 
-  const triggerToast = (text: string, type: "success" | "error" | "loading", icon?: string, duration = 3000) => {
-    setToastMessage({ text, type, icon });
+  const triggerToast = (text: string, type: "success" | "error" | "loading", duration = 3000) => {
+    setToastMessage({ text, type });
     if (type !== "loading") {
       setTimeout(() => {
-        setToastMessage(current => current?.text === text ? null : current);
+        setToastMessage((current) => (current?.text === text ? null : current));
       }, duration);
     }
   };
 
+  // Sync state when user object resolves or updates
+  useEffect(() => {
+    if (user && isOwner) {
+      const savedDbImage = user.profilePicture || user.photoUrl || user.avatar || "";
+      setFormData({
+        name: user.name || "",
+        photoUrl: savedDbImage.includes("ui-avatars.com") ? "" : savedDbImage,
+      });
+    }
+  }, [user, isOwner]);
+
+  // Fetch fresh user data from server on load
   useEffect(() => {
     const fetchFreshUserData = async () => {
       if (isLoading) return;
@@ -95,7 +106,6 @@ export default function ProfilePage() {
 
       if (user && isOwner) {
         try {
-          // Always send MongoDB _id first
           const currentId = user._id || user.id;
           const token = localStorage.getItem("token");
 
@@ -119,24 +129,18 @@ export default function ProfilePage() {
                 name: freshUser.name || "",
                 photoUrl: savedDbImage.includes("ui-avatars.com") ? "" : savedDbImage,
               });
-              return;
             }
           }
         } catch (err) {
           console.error("Failed to sync fresh user dataset:", err);
         }
-
-        const savedDbImage = (user as any)?.profilePicture || (user as any)?.photoUrl || (user as any)?.avatar || "";
-        setFormData({
-          name: user.name || "",
-          photoUrl: savedDbImage.includes("ui-avatars.com") ? "" : savedDbImage,
-        });
       }
     };
 
     fetchFreshUserData();
   }, [isLoading, router, isOwner, params]);
 
+  // Fetch public user details if viewing someone else's profile
   useEffect(() => {
     const fetchArtistInfoOnly = async () => {
       if (!profileArtistId || isOwner) return;
@@ -171,10 +175,11 @@ export default function ProfilePage() {
     );
   }
 
-  // Preview live changes in real-time when editing
-  const displayProfileName = isOwner 
-    ? (isEditing && formData.name.trim() !== "" ? formData.name : (user?.name || "Your Studio")) 
-    : (publicArtistInfo?.name || "Verified Creator");
+  const displayProfileName = isOwner
+    ? isEditing && formData.name.trim() !== ""
+      ? formData.name
+      : user?.name || "Your Studio"
+    : publicArtistInfo?.name || "Verified Creator";
 
   const getAvatarUrl = () => {
     const isValidUrl = (url: any) => url && String(url).trim() !== "" && !String(url).includes("ui-avatars.com");
@@ -183,21 +188,20 @@ export default function ProfilePage() {
       if (formData.photoUrl && formData.photoUrl.trim() !== "") return formData.photoUrl.trim();
       if (isValidUrl(user?.profilePicture)) return user?.profilePicture;
       if (isValidUrl(user?.photoUrl)) return user?.photoUrl;
-      if (isValidUrl((user as any)?.avatar)) return (user as any).avatar;
+      if (isValidUrl(user?.avatar)) return user?.avatar;
       return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(displayProfileName)}`;
     } else {
-      if (isValidUrl((publicArtistInfo as any)?.profilePicture)) return (publicArtistInfo as any).profilePicture;
-      if (isValidUrl((publicArtistInfo as any)?.photoUrl)) return (publicArtistInfo as any).photoUrl;
-      if (isValidUrl((publicArtistInfo as any)?.avatar)) return (publicArtistInfo as any).avatar;
-      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent((publicArtistInfo as any)?.name || "Artist")}`;
+      if (isValidUrl(publicArtistInfo?.profilePicture)) return publicArtistInfo?.profilePicture;
+      if (isValidUrl(publicArtistInfo?.photoUrl)) return publicArtistInfo?.photoUrl;
+      if (isValidUrl(publicArtistInfo?.avatar)) return publicArtistInfo?.avatar;
+      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(publicArtistInfo?.name || "Artist")}`;
     }
   };
 
   const displayProfilePicture = getAvatarUrl();
-  const displayProfileRole = isOwner ? (user?.role || "Baker") : (publicArtistInfo?.role || "Baker");
-  
-  // Clean comparison logic
-  const currentInitialImage = (user?.profilePicture || user?.photoUrl || user?.avatar || "");
+  const displayProfileRole = isOwner ? user?.role || "Baker" : publicArtistInfo?.role || "Baker";
+
+  const currentInitialImage = user?.profilePicture || user?.photoUrl || user?.avatar || "";
   const cleanInitialImage = currentInitialImage.includes("ui-avatars.com") ? "" : currentInitialImage;
 
   const isFormChanged =
@@ -205,14 +209,20 @@ export default function ProfilePage() {
     formData.photoUrl.trim() !== cleanInitialImage ||
     password.trim() !== "";
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: FormEvent) => {
     e.preventDefault();
 
     if (updating || !isOwner) return;
 
-    if (password.trim() !== "" && password !== confirmPassword) {
-      triggerToast("Passwords do not match.", "error");
-      return;
+    if (password.trim() !== "") {
+      if (password.length < 6) {
+        triggerToast("Password must be at least 6 characters.", "error");
+        return;
+      }
+      if (password !== confirmPassword) {
+        triggerToast("Passwords do not match.", "error");
+        return;
+      }
     }
 
     setUpdating(true);
@@ -223,7 +233,7 @@ export default function ProfilePage() {
         userId: user._id || user.id,
         name: formData.name.trim(),
         photoUrl: formData.photoUrl.trim(),
-        ...(password.trim() !== "" && { password })
+        ...(password.trim() !== "" && { password: password.trim() }),
       };
 
       const token = localStorage.getItem("token");
@@ -239,39 +249,38 @@ export default function ProfilePage() {
 
       const responseData = await res.json();
 
-      if (res.ok && (responseData?.success || res.status === 200)) {
+      if (res.ok && responseData?.success) {
         const updatedUser = responseData.user || {
           ...user,
           name: payload.name,
           photoUrl: payload.photoUrl,
-          profilePicture: payload.photoUrl
+          profilePicture: payload.photoUrl,
         };
 
         if (setUser) setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        triggerToast("Profile saved!", "success");
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 600);
+        setPassword("");
+        setConfirmPassword("");
+        setIsEditing(false);
+        triggerToast("Profile saved successfully!", "success");
       } else {
-        triggerToast(responseData?.message || "Failed to sync changes with server.", "error");
-        setUpdating(false);
+        triggerToast(responseData?.message || "Failed to save profile changes.", "error");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error("Update error:", err);
       triggerToast("Failed to connect to server.", "error");
+    } finally {
       setUpdating(false);
     }
   };
 
   return (
-    <main 
+    <main
       className="min-h-screen bg-cover bg-center bg-no-repeat text-[#3E3835] py-16 px-4 md:px-8 relative pt-65 overflow-hidden font-sans"
       style={{
         backgroundImage: `url('/images/bg.png')`,
-        backgroundColor: '#D0E3EA'
+        backgroundColor: "#D0E3EA",
       }}
     >
       {/* Toast Feedback */}
@@ -284,9 +293,8 @@ export default function ProfilePage() {
       <div className="absolute inset-0 bg-[#D0E3EA]/40 backdrop-blur-[2px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start">
-        
         {/* LEFT CONTAINER (Live Preview Card) */}
-        <motion.div 
+        <motion.div
           variants={containerVariants as any}
           initial="hidden"
           animate="visible"
@@ -294,7 +302,6 @@ export default function ProfilePage() {
         >
           <motion.div variants={itemVariants as any} className="bg-[#FAF7F2]/90 backdrop-blur-md border border-[#E5E0D8] rounded-3xl p-6 shadow-xl relative overflow-hidden">
             <div className="flex flex-col items-center text-center space-y-4">
-              
               <div className="relative">
                 <div className="w-24 h-24 rounded-2xl overflow-hidden bg-[#FFFDF9] border border-[#E5E0D8] p-1 shadow-sm flex items-center justify-center">
                   <img
@@ -351,7 +358,7 @@ export default function ProfilePage() {
         <div className="md:col-span-7 w-full">
           <AnimatePresence mode="wait">
             {isOwner && isEditing ? (
-              <motion.div 
+              <motion.div
                 key="editing-pane"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -361,7 +368,7 @@ export default function ProfilePage() {
                 <h3 className="text-xs font-bold uppercase tracking-widest text-[#7A736E] mb-4 flex items-center gap-2">
                   <SlidersHorizontal size={14} /> Account Parameters
                 </h3>
-                
+
                 <form onSubmit={handleUpdateProfile} className="space-y-3.5">
                   <div>
                     <label className="block text-xs font-bold text-[#3E3835] mb-1">Email Address</label>
@@ -395,7 +402,7 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  {/* Password Grid */}
+                  {/* Password Fields */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[#E5E0D8]">
                     <div>
                       <label className="block text-xs font-bold text-[#3E3835] mb-1">New Password</label>
@@ -482,7 +489,6 @@ export default function ProfilePage() {
             )}
           </AnimatePresence>
         </div>
-
       </div>
     </main>
   );
