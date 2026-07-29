@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // Added useRouter
 import { motion, AnimatePresence } from 'framer-motion';
 import { Star, Plus, Eye, Loader2, Search, ArrowRight, ShoppingBag, Check, ChevronDown, Sparkles, Clock, Flame, Cookie, Users, PackageCheck, Gift, Tag, Quote, Heart } from 'lucide-react'; 
 import Link from 'next/link';
@@ -131,6 +132,7 @@ const BAKERY_REVIEWS = [
 
 export default function HomePage() {
   const { user } = useAuth();
+  const router = useRouter(); // Instantiated useRouter
 
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -197,7 +199,13 @@ export default function HomePage() {
     fetchBackendData();
   }, []);
 
+  // Updated to check authentication before adding to cart
   const handleAddToCart = (product: Product) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+
     setCartItems((prevItems) => {
       const existing = prevItems.find((item) => item.foodId === product.product_id);
       if (existing) {
@@ -223,6 +231,27 @@ export default function HomePage() {
 
     setAddedItemAnimation(product.product_id);
     setTimeout(() => setAddedItemAnimation(null), 1200);
+  };
+
+  // Handler for custom batch orders checking authentication
+  const handleCustomOrder = () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
+    // Add custom roll to cart logic
+    const customProduct: Product = {
+      product_id: `custom-${Date.now()}`,
+      product_name: `Custom Roll (${selectedFrosting.name})`,
+      product_price: calculatedCustomPrice,
+      product_description: `Customized with ${selectedFrosting.name} and ${selectedToppings.length} topping(s).`,
+      img_url: '/images/hero.png', // Fallback image for custom orders
+      category_id: 'custom'
+    };
+
+    handleAddToCart(customProduct);
+    setIsCartOpen(true);
   };
 
   const toggleTopping = (toppingId: string) => {
@@ -616,7 +645,10 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  <button className="w-full bg-[#4A2C2A] text-[#FDF6E3] py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-98 transition-all shadow-md">
+                  <button 
+                    onClick={handleCustomOrder}
+                    className="w-full bg-[#4A2C2A] text-[#FDF6E3] py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-[1.02] active:scale-98 transition-all shadow-md"
+                  >
                     Order Custom Batch
                   </button>
                 </div>
