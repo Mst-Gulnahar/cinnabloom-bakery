@@ -11,9 +11,6 @@ import {
   EyeOff,
   Lock,
   SlidersHorizontal,
-  Loader2,
-  CheckCircle2,
-  AlertCircle
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
@@ -196,19 +193,22 @@ export default function ProfilePage() {
 
   const displayProfilePicture = getAvatarUrl();
   const displayProfileRole = isOwner ? (user?.role || "Baker") : (publicArtistInfo?.role || "Baker");
-  const currentDbImageValue = (user as any)?.profilePicture || (user as any)?.photoUrl || (user as any)?.avatar || "";
   
+  // Clean comparison logic
+  const currentInitialImage = (user?.profilePicture || user?.photoUrl || user?.avatar || "");
+  const cleanInitialImage = currentInitialImage.includes("ui-avatars.com") ? "" : currentInitialImage;
+
   const isFormChanged =
     formData.name.trim() !== (user?.name || "") ||
-    formData.photoUrl.trim() !== (currentDbImageValue.includes("ui-avatars.com") ? "" : currentDbImageValue) ||
+    formData.photoUrl.trim() !== cleanInitialImage ||
     password.trim() !== "";
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!isFormChanged || updating || !isOwner) return;
+    if (updating || !isOwner) return;
 
-    if (password !== confirmPassword) {
+    if (password.trim() !== "" && password !== confirmPassword) {
       triggerToast("Passwords do not match.", "error");
       return;
     }
@@ -237,7 +237,7 @@ export default function ProfilePage() {
 
       const responseData = await res.json();
 
-      if (res.ok && responseData?.success) {
+      if (res.ok && (responseData?.success || res.status === 200)) {
         const updatedUser = responseData.user || {
           ...user,
           name: payload.name,
@@ -248,9 +248,8 @@ export default function ProfilePage() {
         if (setUser) setUser(updatedUser);
         localStorage.setItem("user", JSON.stringify(updatedUser));
 
-        triggerToast("Profile saved! Reloading...", "success");
+        triggerToast("Profile saved!", "success");
 
-        // 🔄 AUTORELOAD after 600ms delay to show toast
         setTimeout(() => {
           window.location.reload();
         }, 600);
@@ -259,6 +258,7 @@ export default function ProfilePage() {
         setUpdating(false);
       }
     } catch (err: any) {
+      console.error("Update error:", err);
       triggerToast("Failed to connect to server.", "error");
       setUpdating(false);
     }
@@ -272,6 +272,13 @@ export default function ProfilePage() {
         backgroundColor: '#D0E3EA'
       }}
     >
+      {/* Toast Feedback */}
+      {toastMessage && (
+        <div className="fixed top-6 right-6 z-[9999] bg-[#3E3835] text-[#FAF7F2] px-4 py-2.5 rounded-2xl shadow-2xl text-xs font-bold tracking-wide flex items-center gap-2 animate-bounce">
+          <span>{toastMessage.text}</span>
+        </div>
+      )}
+
       <div className="absolute inset-0 bg-[#D0E3EA]/40 backdrop-blur-[2px] pointer-events-none" />
 
       <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 relative z-10 items-start">
@@ -317,6 +324,7 @@ export default function ProfilePage() {
               {isOwner && (
                 <div className="pt-2 w-full flex flex-col gap-2">
                   <button
+                    type="button"
                     onClick={() => setIsEditing(!isEditing)}
                     className="w-full text-center px-4 py-2.5 rounded-xl border border-[#E5E0D8] bg-[#FFFDF9] hover:bg-white text-xs font-bold uppercase tracking-wider transition-all text-[#3E3835] cursor-pointer"
                   >
@@ -324,6 +332,7 @@ export default function ProfilePage() {
                   </button>
                   {logout && (
                     <button
+                      type="button"
                       onClick={logout}
                       className="w-full text-center px-4 py-2.5 rounded-xl bg-[#FDF0F0] text-[#D96B6B] hover:bg-[#FADADA] text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer"
                     >
@@ -429,17 +438,17 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {isFormChanged && (
-                    <motion.button
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      type="submit"
-                      disabled={updating}
-                      className="w-full py-3 bg-[#D96B6B] text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-[#C25858] transition-all flex items-center justify-center gap-2 shadow-sm mt-4 cursor-pointer"
-                    >
-                      <Paintbrush size={14} /> Save Updates
-                    </motion.button>
-                  )}
+                  <button
+                    type="submit"
+                    disabled={updating || !isFormChanged}
+                    className={`w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm mt-4 transition-all ${
+                      isFormChanged && !updating
+                        ? "bg-[#D96B6B] text-white hover:bg-[#C25858] cursor-pointer"
+                        : "bg-[#E5E0D8] text-[#A39E93] cursor-not-allowed"
+                    }`}
+                  >
+                    <Paintbrush size={14} /> {updating ? "Saving..." : "Save Updates"}
+                  </button>
                 </form>
               </motion.div>
             ) : (
