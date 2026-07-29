@@ -23,16 +23,16 @@ function RiderChat({ orderContext }: RiderChatProps) {
     {
       id: "init",
       sender: "rider",
-      text: "Hey! I'm on my way with your order. Let me know if you need any directions or updates! 🛵",
+      text: "Arrey Boss! Ami Sohel, apnar Cinnabloom Bakery order niye choltechi! 🛵 Garam garam pouchae dibo, chinta nei!",
     },
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom only when messages array changes or loading state changes
+  // Localized scroll: keeps scroll contained inside chat box without scrolling entire page
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [messages.length, loading]);
 
   const sendMessage = async () => {
@@ -41,22 +41,27 @@ function RiderChat({ orderContext }: RiderChatProps) {
     const userText = input.trim();
     const userMsg: Message = { id: Date.now().toString(), sender: "user", text: userText };
 
+    const updatedHistory = [...messages, userMsg];
     setInput("");
-    setMessages((prev) => [...prev, userMsg]);
+    setMessages(updatedHistory);
     setLoading(true);
 
     try {
+      // Send history array so Sohel retains memory & context
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userText, orderContext }),
+        body: JSON.stringify({
+          history: updatedHistory.map(({ sender, text }) => ({ sender, text })),
+          orderContext,
+        }),
       });
 
       const data = await res.json();
       const riderMsg: Message = {
         id: (Date.now() + 1).toString(),
         sender: "rider",
-        text: data.text || "I'm focusing on the road right now, I'll be there shortly!",
+        text: data.text || "Boss, signal ektu dip korsilo! Ami ache, almost eshe gechi 🛵",
       };
 
       setMessages((prev) => [...prev, riderMsg]);
@@ -66,7 +71,7 @@ function RiderChat({ orderContext }: RiderChatProps) {
         {
           id: (Date.now() + 1).toString(),
           sender: "rider",
-          text: "Signal dipped for a moment! Still on the way.",
+          text: "Signal dipped for a moment! Still on the way, boss!",
         },
       ]);
     } finally {
@@ -79,8 +84,11 @@ function RiderChat({ orderContext }: RiderChatProps) {
       {/* Header */}
       <div className="p-3 bg-[#FAF7F2] border-b border-[#E5E0D8] flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full bg-[#EAB308] animate-pulse" />
-          <span className="text-xs font-bold text-[#2C2825]">Rider Assistant</span>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#EAB308] animate-pulse" />
+          <div className="flex flex-col">
+            <span className="text-xs font-bold text-[#2C2825]">Sohel (Rider) 🛵</span>
+            <span className="text-[9px] text-[#8C857B]">Cinnabloom Express</span>
+          </div>
         </div>
         <Sparkles size={13} className="text-[#F472B6]" />
       </div>
@@ -107,7 +115,7 @@ function RiderChat({ orderContext }: RiderChatProps) {
         {loading && (
           <div className="flex items-center gap-1.5 text-[10px] text-[#A39E93] italic pl-2">
             <MessageSquare size={10} className="animate-bounce text-[#F472B6]" />
-            Rider is typing...
+            Sohel is typing...
           </div>
         )}
         <div ref={chatEndRef} />
@@ -120,7 +128,7 @@ function RiderChat({ orderContext }: RiderChatProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-          placeholder="Ask rider for ETA or directions..."
+          placeholder="Ask Sohel for ETA or direction..."
           className="flex-1 text-xs px-3 py-2 bg-[#FFFDF9] border border-[#E5E0D8] rounded-xl text-[#2C2825] focus:outline-none focus:border-[#EAB308] transition-all placeholder:text-[#A39E93]"
         />
         <button

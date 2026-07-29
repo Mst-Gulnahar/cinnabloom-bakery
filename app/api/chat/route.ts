@@ -1,4 +1,3 @@
-// app/api/chat/route.ts
 import { GoogleGenAI } from "@google/genai";
 import { NextResponse } from "next/server";
 
@@ -19,38 +18,52 @@ interface OrderContext {
   status?: string;
 }
 
+interface ChatMessage {
+  sender: "user" | "rider";
+  text: string;
+}
+
 export async function POST(req: Request) {
   try {
-    const { message, orderContext }: { message: string; orderContext?: OrderContext } = await req.json();
+    const { history, orderContext }: { history: ChatMessage[]; orderContext?: OrderContext } = await req.json();
 
-    if (!message) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 });
+    if (!history || !Array.isArray(history) || history.length === 0) {
+      return NextResponse.json({ error: "Chat history is required" }, { status: 400 });
     }
 
-    // Cleanly format item list for the prompt
+    // Cleanly format item list for context
     const itemList = orderContext?.items?.length
       ? orderContext.items.map((item) => `${item.qty}x ${item.name}`).join(", ")
-      : "Fresh bakery treats";
+      : "Warm Cinnamon Rolls & Fresh Pastries";
 
-    // Cozy, personality-filled System Instruction
+    // Quirky Banglish Rider Persona System Instruction
     const systemInstruction = `
-You are Pip, a cozy, cheerful, and reliable delivery rider for Cinnabloom Bakery 🧁. You are currently riding your bicycle/scooter to deliver a warm bakery order to the customer.
+You are Sohel (ভাই / Rider Sohel), a super energetic, warm, quirky, and friendly delivery rider for Cinnabloom Bakery 🧁. You are driving your trusty bicycle/scooter delivering delicious bakery treats.
+
+### Cinnabloom Bakery Special Menu Knowledge:
+- Classic Cinnamon Rolls, Honey Glazed Buns, Chocolate Velvet Rolls, Blueberry Bloom Tart, Espresso Croissant, Iced Caramel Latte, Hot Cocoa.
 
 ### Live Order Telemetry:
-- Order ID: ${orderContext?.orderId || "N/A"}
-- Delivery Address: ${orderContext?.address || "Customer location"}
-- Packed Goodies: ${itemList}
-- Current Status: ${orderContext?.status || "In transit"}
+- Order ID: ${orderContext?.orderId || "CB-9921"}
+- Delivery Address: ${orderContext?.address || "Customer Address"}
+- Packed Items: ${itemList}
+- Order Status: ${orderContext?.status || "On the way!"}
 
-### Behavior & Tone Persona:
-1. **Tone:** Warm, polite, friendly, and cozy. Use light bakery and travel emojis (🥐, ✨, 🚲, ☕, 🛵) naturally.
-2. **Delivery & Status Questions:** If asked about ETA, traffic, or directions, use the Live Order Telemetry above. You are on your way with fresh, warm treats!
-3. **Special Requests:** For requests like extra napkins, cutlery, or handling care, respond enthusiastically that you've noted it down or will keep it safe.
-4. **General & Off-Topic Questions:** If the user asks about ANYTHING else (e.g., life advice, coding, game lore, weather, jokes), answer with a sweet, playful cozy spin, then gently tie it back to their fresh baked delivery. Never break character or act like a generic robot.
-5. **Length:** Keep all responses short and sweet (1 to 3 sentences maximum). Users are reading on mobile while waiting for their food!
+### Sohel's Quirky Persona & Banglish Rules:
+1. **Language & Tone:** Speak in lively, friendly **Banglish** mixed with English and warm Bengali terms (e.g., "Bhaiya", "Apu", "Boss", "Arrey", "Chinta korben na", "Ekdom garam garam!").
+2. **Behavior:** Super quirky, expressive, and playful. Use emojis naturally (🛵, 🥐, ⚡, ☕, 💨).
+3. **Delivery Updates:** Use the Live Order Telemetry when asked about ETA, traffic, or directions.
+4. **Food Knowledge:** Refer to the bakery goods with excitement ("Arrey apnar warm cinnamon rolls pura garom ache!").
+5. **Off-Topic Questions:** If asked about non-delivery stuff (weather, code, gaming, life), answer with a fun Banglish spin and quickly tie it back to their fresh Cinnabloom delivery!
+6. **Length:** Keep responses concise (1 to 3 short sentences maximum).
 `;
 
-    // Fallback array to combat 503 high-demand errors on gemini-2.5-flash
+    // Map message history to Gemini API contents structure
+    const formattedContents = history.map((m) => ({
+      role: m.sender === "user" ? "user" : "model",
+      parts: [{ text: m.text }],
+    }));
+
     const modelsToTry = ["gemini-2.5-flash", "gemini-1.5-flash"];
     let response: any = null;
     let lastError: any = null;
@@ -59,16 +72,16 @@ You are Pip, a cozy, cheerful, and reliable delivery rider for Cinnabloom Bakery
       try {
         response = await ai.models.generateContent({
           model,
-          contents: message,
+          contents: formattedContents,
           config: {
             systemInstruction,
-            temperature: 0.7,
+            temperature: 0.8,
           },
         });
         if (response?.text) break;
       } catch (err: any) {
         lastError = err;
-        console.warn(`Model ${model} failed, trying fallback if available...`, err?.message || err);
+        console.warn(`Model ${model} failed, trying fallback...`, err?.message || err);
       }
     }
 
@@ -78,9 +91,9 @@ You are Pip, a cozy, cheerful, and reliable delivery rider for Cinnabloom Bakery
 
     return NextResponse.json({ text: response.text });
   } catch (error) {
-    console.error("Gemini API Fatal Error:", error);
+    console.error("Gemini API Error:", error);
     return NextResponse.json(
-      { error: "Rider signal interrupted. Please try again." },
+      { text: "Arrey boss, signal ektu weak hoye gechilo! Ami ache, rastay achi! 🛵" },
       { status: 500 }
     );
   }
