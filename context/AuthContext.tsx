@@ -14,7 +14,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   token: string | null;
-  loginUser: (token: string, user: User) => void;
+  loginUser: (token: string, user: User, redirectTo?: string) => void;
   logoutUser: () => void;
   loading: boolean;
 }
@@ -28,43 +28,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUser = localStorage.getItem("user");
+    try {
+      const storedToken = localStorage.getItem("token");
+      const storedUser = localStorage.getItem("user");
 
-    if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
-      
-      // Ensure the cookie exists on page reload for Middleware
-      document.cookie = `token=${storedToken}; path=/; max-age=86400; SameSite=Lax;`;
+      if (storedToken && storedUser && storedUser !== "undefined") {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+        document.cookie = `token=${storedToken}; path=/; max-age=86400; SameSite=Lax;`;
+      } else {
+        // Clear invalid or empty local storage states
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+      }
+    } catch (e) {
+      console.error("Error reading auth state:", e);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
-  const loginUser = (newToken: string, newUser: User) => {
+  const loginUser = (newToken: string, newUser: User, redirectTo: string = "/") => {
     setToken(newToken);
     setUser(newUser);
-    
-    // Save to localStorage
+
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
 
-    // 🔑 SAVE TO COOKIE FOR NEXT.JS MIDDLEWARE
     document.cookie = `token=${newToken}; path=/; max-age=86400; SameSite=Lax;`;
 
-    router.push("/");
+    router.push(redirectTo);
   };
 
   const logoutUser = () => {
     setToken(null);
     setUser(null);
-    
-    // Clear localStorage
+
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    // 🔑 CLEAR COOKIE FOR NEXT.JS MIDDLEWARE
-    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
+    // Clear the token cookie
+    document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
     router.push("/login");
   };

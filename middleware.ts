@@ -4,7 +4,7 @@ import type { NextRequest } from "next/server";
 
 // Define exact protected route paths
 const PROTECTED_ROUTES = ["/items/add", "/items/manage", "/profile"];
-const AUTH_ROUTES = ["/login", "/register"];
+const AUTH_ROUTES = ["/login", "/register", "/signup"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
