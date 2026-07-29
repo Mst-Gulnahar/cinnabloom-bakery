@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 
 interface User {
@@ -9,10 +9,14 @@ interface User {
   name: string;
   email: string;
   role: string;
+  profilePicture?: string;
+  photoUrl?: string;
+  avatar?: string;
 }
 
 interface AuthContextType {
   user: User | null;
+  setUser: Dispatch<SetStateAction<User | null>>;
   token: string | null;
   loginUser: (token: string, user: User, redirectTo?: string) => void;
   logoutUser: () => void;
@@ -37,7 +41,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(JSON.parse(storedUser));
         document.cookie = `token=${storedToken}; path=/; max-age=86400; SameSite=Lax;`;
       } else {
-        // Clear invalid or empty local storage states
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       }
@@ -67,14 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
 
-    // Clear the token cookie
     document.cookie = "token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, logoutUser, loading }}>
+    <AuthContext.Provider value={{ user, setUser, token, loginUser, logoutUser, loading }}>
       {children}
     </AuthContext.Provider>
   );
